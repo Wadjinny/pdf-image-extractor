@@ -7,14 +7,20 @@ export class APIError extends Error {
   }
 }
 
+export interface ExtractedImage {
+  id: string;
+  url: string;
+  pdf_id: string;
+}
+
 export const api = {
-  async extractImages(files: File[]): Promise<{ blob: Blob; imageCount: number }> {
+  async extractImages(files: File[], download = false): Promise<{ blob?: Blob; imageCount: number; imageUrls?: string[] }> {
     const formData = new FormData();
-    files.forEach((file, index) => {
+    files.forEach((file) => {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${API_BASE_URL}/extract-images`, {
+    const response = await fetch(`${API_BASE_URL}/extract-images?download=${download}`, {
       method: 'POST',
       body: formData,
     });
@@ -24,24 +30,34 @@ export const api = {
       throw new APIError(response.status, error.detail || 'Failed to process PDF');
     }
 
-    // Get image count from header or response body
-    let imageCount = 0;
-    const headerImageCount = response.headers.get('X-Image-Count');
-    
-    if (headerImageCount) {
-      imageCount = parseInt(headerImageCount, 10);
+    // Get image count from header
+    const imageCount = parseInt(response.headers.get('X-Image-Count') || '0', 10);
+
+    if (download) {
+      const blob = await response.blob();
+      return { blob, imageCount };
     } else {
-      // Try to get image count from response body
       const jsonResponse = await response.json();
-      imageCount = jsonResponse.image_count || 0;
-      // Create a new response with the same headers but new body
       return {
-        blob: new Blob([JSON.stringify(jsonResponse)], { type: 'application/json' }),
-        imageCount
+        imageCount,
+        imageUrls: jsonResponse.image_urls || []
       };
     }
+  },
 
-    const blob = await response.blob();
-    return { blob, imageCount };
+  async getPdfImages(pdfId: string): Promise<ExtractedImage[]> {
+    const response = await fetch(`${API_BASE_URL}/pdf/${pdfId}/images`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new APIError(response.status, error.detail || 'Failed to fetch PDF images');
+    }
+
+    return response.json();
+  },
+
+  getImageUrl(imageId: string): string {
+    // imageId is in format "{pdf_id}/{image_filename}"
+    return `${API_BASE_URL}/images/${imageId}`;
   }
 }; 

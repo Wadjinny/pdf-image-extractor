@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     api_v1_str: str = "/api/v1"
     project_name: str = "PDF Image Extractor"
     version: str = "1.0.0"
+    server_url: str = "http://localhost:8000"  # Default for development
     
     # CORS Settings
     cors_origins: List[str] = [

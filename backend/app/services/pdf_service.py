@@ -1,15 +1,97 @@
 import fitz
-from typing import BinaryIO
+from typing import BinaryIO, Tuple, List
 import io
 import zipfile
 from datetime import datetime
+import os
+from uuid import uuid4
 from PIL import Image
 from fastapi import UploadFile, HTTPException
 
 from ..core.logger import logger, log_error
 from ..core.errors import PDFProcessingError, NoImagesFoundError, InvalidPDFError
+from ..core.config import settings
 
 class PdfService:
+    @staticmethod
+    def ensure_temp_dirs():
+        """Ensure temporary directories exist"""
+        os.makedirs(os.path.join(settings.temp_dir, "images"), exist_ok=True)
+    
+    @staticmethod
+    async def cleanup_old_images():
+        """Clean up images older than the configured retention period"""
+        # TODO: Implement cleanup of old images
+        pass
+
+    @staticmethod
+    async def extract_images(file: UploadFile) -> Tuple[bytes, int, List[str]]:
+        """
+        Extract images from a PDF file, save them to disk, and return their IDs
+        Returns:
+            tuple: (ZIP file bytes, number of images, list of image IDs)
+        """
+        try:
+            PdfService.ensure_temp_dirs()
+            content = await file.read()
+            pdf_document = fitz.open(stream=content, filetype="pdf")
+            
+            # Create a unique ID for this PDF
+            pdf_id = str(uuid4())
+            pdf_dir = os.path.join(settings.temp_dir, "images", pdf_id)
+            os.makedirs(pdf_dir, exist_ok=True)
+            
+            # Create a ZIP file in memory
+            zip_buffer = io.BytesIO()
+            image_ids = []
+            
+            with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                image_count = 0
+                
+                for page_num in range(pdf_document.page_count):
+                    page = pdf_document[page_num]
+                    image_list = page.get_images()
+                    
+                    for img_index, img in enumerate(image_list):
+                        xref = img[0]
+                        base_image = pdf_document.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        
+                        # Convert to PIL Image for potential processing
+                        image = Image.open(io.BytesIO(image_bytes))
+                        
+                        # Generate unique filename
+                        image_filename = f"page_{page_num + 1}_image_{img_index + 1}.{image.format.lower() if image.format else 'png'}"
+                        image_path = os.path.join(pdf_dir, image_filename)
+                        
+                        # Save image to disk
+                        image.save(image_path, format=image.format or 'PNG')
+                        image_ids.append(f"{pdf_id}/{image_filename}")
+                        
+                        # Also add to ZIP
+                        img_buffer = io.BytesIO()
+                        image.save(img_buffer, format=image.format or 'PNG')
+                        img_buffer.seek(0)
+                        zip_file.writestr(image_filename, img_buffer.getvalue())
+                        image_count += 1
+                        
+            zip_buffer.seek(0)
+            return zip_buffer.getvalue(), image_count, image_ids
+            
+        except Exception as e:
+            # Clean up on error
+            if 'pdf_dir' in locals() and os.path.exists(pdf_dir):
+                import shutil
+                shutil.rmtree(pdf_dir)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error processing PDF: {str(e)}"
+            )
+        finally:
+            if 'pdf_document' in locals():
+                pdf_document.close()
+            await file.seek(0)  # Reset file pointer for potential reuse
+
     @staticmethod
     async def extract_images_from_pdfs(files: list[BinaryIO]) -> tuple[bytes, int]:
         """
@@ -86,55 +168,6 @@ class PdfService:
         except Exception as e:
             log_error(e, {"context": "zip_creation"})
             raise PDFProcessingError("Failed to create ZIP file") from e
-
-    @staticmethod
-    async def extract_images(file: UploadFile) -> tuple[bytes, int]:
-        """Extract images from a PDF file and return them as a ZIP archive."""
-        try:
-            content = await file.read()
-            pdf_document = fitz.open(stream=content, filetype="pdf")
-            
-            # Create a ZIP file in memory
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-                image_count = 0
-                
-                for page_num in range(pdf_document.page_count):
-                    page = pdf_document[page_num]
-                    image_list = page.get_images()
-                    
-                    for img_index, img in enumerate(image_list):
-                        xref = img[0]
-                        base_image = pdf_document.extract_image(xref)
-                        image_bytes = base_image["image"]
-                        
-                        # Convert to PIL Image for potential processing
-                        image = Image.open(io.BytesIO(image_bytes))
-                        
-                        # Save image to ZIP
-                        img_buffer = io.BytesIO()
-                        image.save(img_buffer, format=image.format or 'PNG')
-                        img_buffer.seek(0)
-                        
-                        # Add to ZIP with a meaningful name
-                        zip_file.writestr(
-                            f'page_{page_num + 1}_image_{img_index + 1}.{image.format.lower() if image.format else "png"}',
-                            img_buffer.getvalue()
-                        )
-                        image_count += 1
-                        
-            zip_buffer.seek(0)
-            return zip_buffer.getvalue(), image_count
-            
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error processing PDF: {str(e)}"
-            )
-        finally:
-            if 'pdf_document' in locals():
-                pdf_document.close()
-            await file.seek(0)  # Reset file pointer for potential reuse 
 
     @staticmethod
     async def combine_zip_files(zip_data_list: list[bytes]) -> bytes:

@@ -21,7 +21,6 @@ export function PdfUploader() {
 
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [downloadBlob, setDownloadBlob] = useState<Blob | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -43,8 +42,8 @@ export function PdfUploader() {
         setProgress(prev => Math.min(prev + 10, 90))
       }, 1000)
 
-      // Make API call
-      const { blob, imageCount } = await api.extractImages(acceptedFiles)
+      // Make API call for instant viewing
+      const { imageUrls, imageCount } = await api.extractImages(acceptedFiles, false)
       
       // Clean up and show success
       clearInterval(interval)
@@ -52,11 +51,18 @@ export function PdfUploader() {
       
       setTimeout(() => {
         setIsExtracting(false)
-        setExtractedImages(Array(imageCount).fill('')) // Placeholder for image URLs
+        if (imageUrls) {
+          // Convert relative URLs to absolute URLs using the helper function
+          const absoluteUrls = imageUrls.map(url => {
+            // If the URL is just an ID, use the helper function
+            if (!url.startsWith('http') && !url.startsWith('/')) {
+              return api.getImageUrl(url)
+            }
+            return url
+          })
+          setExtractedImages(absoluteUrls)
+        }
       }, 10)
-
-      // Store blob for later download
-      setDownloadBlob(blob)
     } catch (error) {
       let message = 'Failed to process files. Please try again.'
       if (error instanceof APIError) {
@@ -80,12 +86,18 @@ export function PdfUploader() {
   })
 
   const handleDownload = async () => {
-    if (!downloadBlob || !pdfFile) return
+    if (!pdfFile) return
     
     setIsDownloading(true)
     try {
+      // Make API call for download only when needed
+      const { blob } = await api.extractImages([pdfFile], true)
+      if (!blob) {
+        throw new Error('Failed to get download blob')
+      }
+
       // Create download link
-      const url = URL.createObjectURL(downloadBlob)
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = 'extracted_images.zip'
@@ -165,32 +177,51 @@ export function PdfUploader() {
       )}
 
       {extractedImages.length > 0 && (
-        <div className="flex items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="inline-flex items-center gap-2 bg-green-950 text-emerald-400 px-4 py-2 rounded-md">
-            <Zap className="w-5 h-5" />
-            <span className="font-medium">
-              Extracted {extractedImages.length} images successfully!
-            </span>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-center gap-4">
+            <div className="inline-flex items-center gap-2 bg-green-950 text-emerald-400 px-4 py-2 rounded-md">
+              <Zap className="w-5 h-5" />
+              <span className="font-medium">
+                Extracted {extractedImages.length} images successfully!
+              </span>
+            </div>
+            
+            <Button 
+              size="lg" 
+              className="bg-emerald-500 hover:bg-emerald-500/90 text-white"
+              onClick={handleDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <File className="w-4 h-4 mr-2" />
+                  Download extracted_images.zip
+                </>
+              )}
+            </Button>
           </div>
-          
-          <Button 
-            size="lg" 
-            className="bg-emerald-500 hover:bg-emerald-500/90 text-white"
-            onClick={handleDownload}
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <File className="w-4 h-4 mr-2" />
-                Download extracted_images.zip
-              </>
-            )}
-          </Button>
+
+          {/* Image Gallery */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {extractedImages.map((imageUrl, index) => (
+              <div 
+                key={imageUrl} 
+                className="relative aspect-square rounded-lg overflow-hidden bg-muted/10 border"
+              >
+                <img
+                  src={imageUrl}
+                  alt={`Extracted image ${index + 1}`}
+                  className="w-full h-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
