@@ -4,6 +4,7 @@ import io
 import zipfile
 from datetime import datetime
 import os
+from pathlib import Path
 from uuid import uuid4
 from PIL import Image
 from fastapi import UploadFile, HTTPException
@@ -16,7 +17,7 @@ class PdfService:
     @staticmethod
     def ensure_temp_dirs():
         """Ensure temporary directories exist"""
-        os.makedirs(os.path.join(settings.temp_dir, "images"), exist_ok=True)
+        Path(settings.temp_dir).joinpath("images").mkdir(parents=True, exist_ok=True)
     
     @staticmethod
     async def cleanup_old_images():
@@ -38,8 +39,8 @@ class PdfService:
             
             # Create a unique ID for this PDF
             pdf_id = str(uuid4())
-            pdf_dir = os.path.join(settings.temp_dir, "images", pdf_id)
-            os.makedirs(pdf_dir, exist_ok=True)
+            pdf_dir = Path(settings.temp_dir).joinpath("images", pdf_id)
+            pdf_dir.mkdir(exist_ok=True)
             
             # Create a ZIP file in memory
             zip_buffer = io.BytesIO()
@@ -62,7 +63,7 @@ class PdfService:
                         
                         # Generate unique filename
                         image_filename = f"page_{page_num + 1}_image_{img_index + 1}.{image.format.lower() if image.format else 'png'}"
-                        image_path = os.path.join(pdf_dir, image_filename)
+                        image_path = pdf_dir.joinpath(image_filename)
                         
                         # Save image to disk
                         image.save(image_path, format=image.format or 'PNG')
@@ -80,7 +81,7 @@ class PdfService:
             
         except Exception as e:
             # Clean up on error
-            if 'pdf_dir' in locals() and os.path.exists(pdf_dir):
+            if 'pdf_dir' in locals() and pdf_dir.exists():
                 import shutil
                 shutil.rmtree(pdf_dir)
             raise HTTPException(

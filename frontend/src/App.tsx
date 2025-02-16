@@ -2,11 +2,11 @@ import { Toaster } from 'sonner'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Nav } from '@/components/nav'
 import { Footer } from '@/components/footer'
-import { PdfUploader } from '@/components/pdf-uploader'
+import { PdfUploader } from '@/features/pdf/components/pdf-uploader'
 import { About } from '@/pages/about'
 import { Terms } from '@/pages/terms'
 import { ThemeProvider } from '@/lib/theme-provider'
-import { PdfProvider } from '@/lib/pdf-context'
+import { PdfProvider } from '@/features/pdf/pdf-context'
 
 export function App() {
   return (

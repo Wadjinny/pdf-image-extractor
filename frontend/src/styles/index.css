@@ -9,25 +9,29 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --ring: 142 76% 36%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 197 37% 24%;
+    --chart-5: 220 70% 50%;
+    --radius: 0.5rem;
+    /* Add scrollbar variables for light theme */
+    --scrollbar-track: 0 0% 95%;
+    --scrollbar-thumb: 0 0% 80%;
+    --scrollbar-thumb-hover: 0 0% 70%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -36,24 +40,28 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --primary: 142 76% 46%;
     --primary-foreground: 0 0% 9%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 142 76% 46%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 141 73% 42%;
-    --chart-3: 188 86% 53%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --ring: 142 76% 46%;
+    --chart-1: 142 76% 46%;
+    --chart-2: 142 76% 46%;
+    --chart-3: 173 58% 49%;
+    --chart-4: 197 37% 44%;
+    --chart-5: 220 70% 60%;
+    /* Add scrollbar variables for dark theme */
+    --scrollbar-track: 0 0% 10%;
+    --scrollbar-thumb: 0 0% 25%;
+    --scrollbar-thumb-hover: 0 0% 35%;
   }
 }
 @layer base {
@@ -84,24 +92,24 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgb(var(--background));
+    background: hsl(var(--scrollbar-track));
     border-radius: var(--radius);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--muted-foreground) / 0.2);
+    background: hsl(var(--scrollbar-thumb));
     border-radius: var(--radius);
-    border: 2px solid rgb(var(--background));
+    border: 2px solid hsl(var(--scrollbar-track));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--muted-foreground) / 0.3);
+    background: hsl(var(--scrollbar-thumb-hover));
   }
 
   /* For Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--muted-foreground) / 0.2) rgb(var(--background));
+    scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
   }
 }
 
@@ -109,4 +117,3 @@
   0% { background-position: 0% center; }
   100% { background-position: -200% center; }
 }
-

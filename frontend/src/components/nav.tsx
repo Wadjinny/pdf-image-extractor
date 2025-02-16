@@ -17,20 +17,20 @@ export function Nav() {
           to="/" 
           className="flex items-center gap-2 font-semibold transition-transform duration-200 hover:scale-[1.02]"
         >
-          <span className="text-lg bg-gradient-to-r from-chart-2 to-chart-3 bg-clip-text text-transparent">
+          <span className="text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             PDF Extractor
           </span>
         </Link>
         
         <div className="hidden items-center gap-2 md:flex">
+          <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
+            <Link to="/">Get Started</Link>
+          </Button>
           <Button variant="ghost" size="sm" className="text-sm" asChild>
             <Link to="/about">About</Link>
           </Button>
           <Button variant="ghost" size="sm" className="text-sm" asChild>
             <Link to="/terms">Terms</Link>
-          </Button>
-          <Button size="sm" className="bg-chart-2 hover:bg-chart-2/90 text-white" asChild>
-            <Link to="/">Get Started</Link>
           </Button>
           <ThemeToggle />
         </div>
@@ -45,7 +45,7 @@ export function Nav() {
             <DropdownMenuContent align="end" className="w-[200px]">
               <DropdownMenuItem asChild>
                 <Link to="/" className="w-full justify-between">
-                  Get Started <span className="text-chart-2">→</span>
+                  Get Started <span className="text-primary">→</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

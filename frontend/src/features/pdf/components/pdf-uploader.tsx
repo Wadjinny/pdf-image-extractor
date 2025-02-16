@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
-import { UploadCloud, Loader2, File, Zap, XCircle } from 'lucide-react'
+import { Zap, XCircle, File, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { api, APIError } from '@/lib/api'
 import { toast } from 'sonner'
-import { usePdf } from '@/lib/pdf-context'
+import { usePdf } from '../pdf-context'
+import { ImageViewer } from './image-viewer'
+import { UploadArea } from '@/components/upload-area'
+import { ImageGrid } from './image-grid'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
@@ -22,6 +24,8 @@ export function PdfUploader() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const oversizedFiles = acceptedFiles.filter(file => file.size > MAX_FILE_SIZE)
@@ -37,24 +41,19 @@ export function PdfUploader() {
     setExtractedImages([])
     
     try {
-      // Start progress animation
       const interval = setInterval(() => {
         setProgress(prev => Math.min(prev + 10, 90))
       }, 1000)
 
-      // Make API call for instant viewing
-      const { imageUrls, imageCount } = await api.extractImages(acceptedFiles, false)
+      const { imageUrls } = await api.extractImages(acceptedFiles, false)
       
-      // Clean up and show success
       clearInterval(interval)
       setProgress(100)
       
       setTimeout(() => {
         setIsExtracting(false)
         if (imageUrls) {
-          // Convert relative URLs to absolute URLs using the helper function
           const absoluteUrls = imageUrls.map(url => {
-            // If the URL is just an ID, use the helper function
             if (!url.startsWith('http') && !url.startsWith('/')) {
               return api.getImageUrl(url)
             }
@@ -76,27 +75,16 @@ export function PdfUploader() {
     }
   }, [setIsExtracting, setPdfFile, setExtractedImages])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf']
-    },
-    multiple: true,
-    disabled: isExtracting
-  })
-
   const handleDownload = async () => {
     if (!pdfFile) return
     
     setIsDownloading(true)
     try {
-      // Make API call for download only when needed
       const { blob } = await api.extractImages([pdfFile], true)
       if (!blob) {
         throw new Error('Failed to get download blob')
       }
 
-      // Create download link
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -123,52 +111,13 @@ export function PdfUploader() {
         </p>
       </div>
 
-      <div 
-        {...getRootProps()} 
-        className={`
-          group border-2 border-dashed rounded-xl py-16 px-8 text-center cursor-pointer
-          transition-all duration-200 relative overflow-hidden
-          dark:bg-muted/5
-          hover:border-chart-2/50 hover:bg-chart-2/5
-          dark:hover:border-chart-2/50 dark:hover:bg-chart-2/10
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chart-2
-          ${isDragActive ? 'border-chart-2 bg-chart-2/10 dark:bg-chart-2/20' : 'border-border'}
-          ${isExtracting ? 'opacity-50 pointer-events-none' : ''}
-          before:absolute before:inset-0 before:bg-grid-pattern before:opacity-[0.03]
-          before:transition-opacity before:duration-200
-          group-hover:before:opacity-[0.06]
-        `}
-        role="button"
-        tabIndex={0}
-      >
-        <input {...getInputProps()} />
-        
-        <div className="space-y-4">
-          <div className="mx-auto w-fit p-4 rounded-full bg-background border">
-            {isExtracting ? (
-              <Loader2 className="w-8 h-8 text-chart-2 animate-spin" />
-            ) : (
-              <UploadCloud className={`w-8 h-8 ${isDragActive ? 'text-chart-2' : 'text-muted-foreground'}`} />
-            )}
-          </div>
-          
-          <div className="space-y-1">
-            <h3 className="font-medium">
-              {isExtracting ? 'Processing Files...' : 'Drag PDFs Here'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {isExtracting ? 'Extracting images from your documents' : 'or click to browse files'}
-            </p>
-          </div>
-        </div>
-      </div>
+      <UploadArea isExtracting={isExtracting} onDrop={onDrop} />
 
       {isExtracting && (
         <div className="space-y-2">
           <Progress 
             value={progress} 
             className="h-2 w-full bg-muted" 
-            indicatorClassName="bg-chart-2 transition-all duration-300"
           />
           <p className="text-sm text-center text-muted-foreground">
             {Math.round(progress)}% complete - Hang tight!
@@ -206,22 +155,20 @@ export function PdfUploader() {
             </Button>
           </div>
 
-          {/* Image Gallery */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {extractedImages.map((imageUrl, index) => (
-              <div 
-                key={imageUrl} 
-                className="relative aspect-square rounded-lg overflow-hidden bg-muted/10 border"
-              >
-                <img
-                  src={imageUrl}
-                  alt={`Extracted image ${index + 1}`}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
+          <ImageGrid 
+            images={extractedImages} 
+            onViewImage={(index) => {
+              setSelectedImageIndex(index)
+              setViewerOpen(true)
+            }}
+          />
+
+          <ImageViewer
+            images={extractedImages}
+            initialIndex={selectedImageIndex}
+            isOpen={viewerOpen}
+            onClose={() => setViewerOpen(false)}
+          />
         </div>
       )}
 

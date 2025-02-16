@@ -4,7 +4,7 @@ export function Footer() {
       <div className="container py-12 px-4">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:items-start">
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-chart-2 to-chart-3 bg-clip-text text-transparent">
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               PDF Image Extractor
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">

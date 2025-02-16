@@ -15,7 +15,6 @@ export class PdfService {
     formData.append('file', file);
 
     try {
-      // First get the JSON response
       const response = await axios.post<UploadResponse>(
         `${this.baseUrl}${API_CONFIG.ENDPOINTS.UPLOAD}`,
         formData,
@@ -24,11 +23,10 @@ export class PdfService {
         }
       );
 
-      // If successful, download the ZIP file
       const downloadFormData = new FormData();
       downloadFormData.append('file', file);
       
-      const downloadResponse = await axios.post(
+      const downloadResponse = await axios.post<Blob>(
         `${this.baseUrl}${API_CONFIG.ENDPOINTS.UPLOAD}?download=true`,
         downloadFormData,
         {
@@ -37,8 +35,7 @@ export class PdfService {
         }
       );
 
-      // Handle the ZIP file download
-      const blob = new Blob([downloadResponse.data], { type: 'application/zip' });
+      const blob = new Blob([downloadResponse.data as BlobPart], { type: 'application/zip' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -53,8 +50,8 @@ export class PdfService {
         image_count: response.data.image_count,
         filename: response.data.filename,
       };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
+    } catch (error: any) {
+      if (error?.isAxiosError) {
         const errorMessage = error.response?.data?.detail || 'Failed to upload PDF';
         console.error('Upload error:', error.response?.data);
         throw new Error(errorMessage);
@@ -65,12 +62,15 @@ export class PdfService {
 
   static async downloadImages(filename: string): Promise<Blob> {
     try {
-      const response = await axios.get(`${this.baseUrl}${API_CONFIG.ENDPOINTS.DOWNLOAD}/${filename}/images`, {
-        responseType: 'blob',
-      });
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
+      const response = await axios.get<Blob>(
+        `${this.baseUrl}${API_CONFIG.ENDPOINTS.DOWNLOAD}/${filename}/images`,
+        {
+          responseType: 'blob',
+        }
+      );
+      return response.data as Blob;
+    } catch (error: any) {
+      if (error?.isAxiosError) {
         throw new Error(error.response?.data?.detail || 'Failed to download images');
       }
       throw error;

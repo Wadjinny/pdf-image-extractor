@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+import { env } from '@/config/env';
 
 export class APIError extends Error {
   constructor(public status: number, message: string) {
@@ -20,7 +20,7 @@ export const api = {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${API_BASE_URL}/extract-images?download=${download}`, {
+    const response = await fetch(`${env.apiUrl}/extract-images?download=${download}`, {
       method: 'POST',
       body: formData,
     });
@@ -46,7 +46,7 @@ export const api = {
   },
 
   async getPdfImages(pdfId: string): Promise<ExtractedImage[]> {
-    const response = await fetch(`${API_BASE_URL}/pdf/${pdfId}/images`);
+    const response = await fetch(`${env.apiUrl}/pdf/${pdfId}/images`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -58,6 +58,6 @@ export const api = {
 
   getImageUrl(imageId: string): string {
     // imageId is in format "{pdf_id}/{image_filename}"
-    return `${API_BASE_URL}/images/${imageId}`;
+    return `${env.apiUrl}/images/${imageId}`;
   }
 }; 

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Response, Query, Path, status
+from fastapi import APIRouter, UploadFile, File, HTTPException, Response, Query, Path as FastAPIPath, status
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from typing import Any, List
-import os
+from pathlib import Path
 from uuid import uuid4
 
 from ...services.pdf_service import PdfService
@@ -215,16 +215,16 @@ async def upload_pdf(
 @router.get("/images/{pdf_id}/{image_filename:path}")
 async def get_image(pdf_id: str, image_filename: str):
     """Serve an extracted image file."""
-    image_path = os.path.join(settings.temp_dir, "images", pdf_id, image_filename)
+    image_path = Path(settings.temp_dir).joinpath("images", pdf_id, image_filename)
     
-    if not os.path.exists(image_path):
+    if not image_path.exists():
         raise HTTPException(
             status_code=404,
             detail="Image not found or has been cleaned up"
         )
     
     return FileResponse(
-        image_path,
+        str(image_path),
         media_type="image/*",
         filename=image_filename
     )
@@ -306,7 +306,7 @@ async def get_image(pdf_id: str, image_filename: str):
     """
 )
 async def list_pdf_images(
-    pdf_id: str = Path(
+    pdf_id: str = FastAPIPath(
         ..., 
         description="""
         The UUID of the PDF to list images from.
@@ -319,21 +319,22 @@ async def list_pdf_images(
         """
     )
 ):
-    pdf_image_dir = os.path.join(settings.temp_dir, "images", pdf_id)
-    if not os.path.exists(pdf_image_dir):
+    """List all images extracted from a specific PDF."""
+    pdf_image_dir = Path(settings.temp_dir).joinpath("images", pdf_id)
+    if not pdf_image_dir.exists():
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No images found for PDF {pdf_id}"
+            status_code=404,
+            detail="PDF ID not found or no images available"
         )
     
     images = []
-    for filename in os.listdir(pdf_image_dir):
-        if os.path.isfile(os.path.join(pdf_image_dir, filename)):
-            image_url = f"/api/v1/images/{pdf_id}/{filename}"
+    for file_path in pdf_image_dir.iterdir():
+        if file_path.is_file():
+            filename = file_path.name
             images.append(ImageResponse(
                 id=filename,
-                url=image_url,
+                url=f"{settings.api_v1_str}/images/{pdf_id}/{filename}",
                 pdf_id=pdf_id
             ))
     
-    return images 
+    return sorted(images, key=lambda x: x.id) 

@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useReducer } from 'react';
-import { PdfService } from '../services/pdf.service';
-import { PdfState, PdfContextType, PdfProviderProps } from '../types/pdf.types';
+import { createContext, useContext, useReducer, useState } from 'react';
+import { PdfService } from '@/lib/services/pdf.service';
+import { PdfState, PdfContextType, PdfProviderProps } from './pdf.types';
 
 const initialState: PdfState = {
   isUploading: false,
   isDownloading: false,
+  isExtracting: false,
   error: null,
+  pdfFile: null,
+  extractedImages: [],
   uploadedFile: null,
   imageCount: 0,
 };
@@ -50,6 +53,9 @@ const PdfContext = createContext<PdfContextType | null>(null);
 
 export function PdfProvider({ children }: PdfProviderProps) {
   const [state, dispatch] = useReducer(pdfReducer, initialState);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [extractedImages, setExtractedImages] = useState<string[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const uploadPdf = async (file: File) => {
     dispatch({ type: 'START_UPLOAD' });
@@ -57,7 +63,7 @@ export function PdfProvider({ children }: PdfProviderProps) {
       const response = await PdfService.uploadPdf(file);
       dispatch({
         type: 'UPLOAD_SUCCESS',
-        payload: { filename: file.name, imageCount: response.imageCount },
+        payload: { filename: file.name, imageCount: response.image_count },
       });
     } catch (error) {
       dispatch({
@@ -88,10 +94,28 @@ export function PdfProvider({ children }: PdfProviderProps) {
     }
   };
 
-  const resetState = () => dispatch({ type: 'RESET' });
+  const resetState = () => {
+    dispatch({ type: 'RESET' });
+    setPdfFile(null);
+    setExtractedImages([]);
+    setIsExtracting(false);
+  };
 
   return (
-    <PdfContext.Provider value={{ state, uploadPdf, downloadImages, resetState }}>
+    <PdfContext.Provider 
+      value={{ 
+        state, 
+        uploadPdf, 
+        downloadImages, 
+        resetState,
+        pdfFile,
+        setPdfFile,
+        extractedImages,
+        setExtractedImages,
+        isExtracting,
+        setIsExtracting
+      }}
+    >
       {children}
     </PdfContext.Provider>
   );
