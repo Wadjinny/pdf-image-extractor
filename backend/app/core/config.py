@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     """Application settings."""
     
     # API Settings
-    api_v1_str: str = "/api/v1"
+    api_str: str = "/api"
     project_name: str = "PDF Image Extractor"
     version: str = "1.0.0"
     api_port: int = 8000

@@ -1,24 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-
+import os
 from .core.config import settings
 from .api.v1 import health, pdf
 
+
+# Get frontend URL from environment variable, default to http://localhost:5173 for development
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173")
+
 app = FastAPI(
     title=settings.project_name,
-    openapi_url=f"{settings.api_v1_str}/openapi.json",
-    docs_url=f"{settings.api_v1_str}/docs",
-    redoc_url=f"{settings.api_v1_str}/redoc",
-    version=settings.version,
     description="API for extracting images from PDF files"
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,5 +24,5 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(health.router, prefix=settings.api_v1_str, tags=["health"])
-app.include_router(pdf.router, prefix=settings.api_v1_str, tags=["pdf"]) 
+app.include_router(health.router, prefix=settings.api_str, tags=["health"])
+app.include_router(pdf.router, prefix=settings.api_str, tags=["pdf"]) 

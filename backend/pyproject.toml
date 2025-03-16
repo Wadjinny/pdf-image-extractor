@@ -1,17 +1,33 @@
-[tool.poetry]
+[project]
 name = "pdf-image-extractor"
 version = "0.1.0"
 description = "A web application to extract images from PDF files"
-authors = ["Ilyas Wadjinny <ilyas.wadjinny@gmail.com>"]
+authors = [
+    {name = "ilyas",email = "ilyasswadjinny@gmail.com"}
+]
+readme = "README.md"
+requires-python = "^3.9"
+dependencies = [
+    "fastapi (>=0.115.11,<0.116.0)",
+    "uvicorn (>=0.34.0,<0.35.0)",
+    "python-multipart",
+    "pymupdf",
+    "python-jose[cryptography] (>=3.3.0,<4.0.0)",
+    "python-dotenv (>=1.0.0,<2.0.0)",
+    "pydantic-settings (>=2.1.0,<3.0.0)",
+    "pillow (>=11.1.0,<12.0.0)"
+]
+
+[tool.poetry]
 packages = [
-    { include = "app", from = "backend" }
+    { include = "app", from = "." }
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-fastapi = "^0.104.0"
-uvicorn = "^0.24.0"
-python-multipart = "^0.0.6"
+fastapi = "*"
+uvicorn = "*"
+python-multipart = "*"
 pymupdf = "^1.23.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 python-dotenv = "^1.0.0"

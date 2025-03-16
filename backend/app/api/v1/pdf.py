@@ -188,7 +188,7 @@ async def upload_pdf(
         else:
             # Return JSON response with image URLs
             server_url = settings.server_url.rstrip('/')
-            base_url = f"{server_url}{settings.api_v1_str}/images"
+            base_url = f"{settings.api_str}/images"
             image_urls = [f"{base_url}/{image_id}" for image_id in all_image_ids]
             
             response = JSONResponse(
@@ -333,7 +333,7 @@ async def list_pdf_images(
             filename = file_path.name
             images.append(ImageResponse(
                 id=filename,
-                url=f"{settings.api_v1_str}/images/{pdf_id}/{filename}",
+                url=f"{settings.api_str}/images/{pdf_id}/{filename}",
                 pdf_id=pdf_id
             ))
     

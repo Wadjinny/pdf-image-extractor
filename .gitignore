@@ -88,3 +88,5 @@ extracted_images_*.zip
 !.yarn/sdks
 !.yarn/versions
 .pnp.* 
+
+tmp
